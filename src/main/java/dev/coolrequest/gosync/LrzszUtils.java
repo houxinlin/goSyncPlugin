@@ -13,7 +13,7 @@ import java.util.zip.ZipInputStream;
 
 public class LrzszUtils {
     private static final String WINDOWS = "/windows/lrzsz_0.12.21rc_windows_x86_64.zip";
-    private static final Path HOME = Paths.get(System.getProperty("user.home"), ".config", ".cool-request", "ssh-task");
+    private static final Path HOME = Paths.get(System.getProperty("user.home"), ".config", ".cool-request", "gosync");
 
     public static void unzip(InputStream zipFileStream, String destDir) throws IOException {
         Path destPath = Paths.get(destDir);
@@ -75,8 +75,11 @@ public class LrzszUtils {
 
     public static String getExecutePath() {
         if (isWindows()) {
-            un();
-            return HOME.resolve("windows/sz.exe").toString();
+            Path resolve = HOME.resolve("windows/sz.exe");
+            if (!Files.exists(resolve)) {
+                un();
+            }
+            return resolve.toString();
         }
         Optional<String> szPath = findExecutable("sz");
         if (szPath.isPresent()) {

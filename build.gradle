@@ -24,7 +24,7 @@ tasks.withType(Javadoc) {
 }
 
 gradlePlugin {
-    website = "https://coolrequest.dev"
+    website = "https://houxinlin.github.io/"
     vcsUrl = "https://github.com/houxinlin/goSyncPlugin"
     plugins {
         goSync {

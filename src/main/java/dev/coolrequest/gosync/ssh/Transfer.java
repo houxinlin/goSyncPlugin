@@ -1,7 +1,6 @@
 package dev.coolrequest.gosync.ssh;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -39,7 +38,7 @@ public class Transfer implements Runnable {
         return -1;
     }
 
-    public void transferTo() throws IOException {
+    public void transferTo() throws Exception {
         byte[] szFileDataPacakge = new byte[]{
                 (byte) 0x2A, (byte) 0x18, (byte) 0x43, (byte) 0x0A
         };
@@ -50,11 +49,14 @@ public class Transfer implements Runnable {
         int read;
         ByteArrayOutputStream cache = null;
         while ((read = szSourceInputStream.read(buffer)) > 0) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException();
+            }
             outTo.write(buffer, 0, read);
             outTo.flush();
             try {
                 if (startsWith(buffer, szFileDataPacakge)) {
-                    if (read>= 12) {
+                    if (read >= 12) {
                         cache = new ByteArrayOutputStream();
                         cache.write(buffer, 12, read - 12);
                     }
@@ -103,7 +105,9 @@ public class Transfer implements Runnable {
 
     public interface ProgressListener {
         void onProgress(float progress);
+
         void onSuccess();
+
         void onComplete(Exception exception);
     }
 }

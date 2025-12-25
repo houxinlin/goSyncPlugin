@@ -15,7 +15,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class JumpServer implements ITransport, IFileComparison {
+public class JumpServer implements IService {
     private final HostInfo hostInfo;
     private final GoSyncTask gsTask;
 
@@ -34,7 +34,10 @@ public class JumpServer implements ITransport, IFileComparison {
         SSH ssh;
         ssh = getSSH(hostInfo, gsTask);
         String uuid = UUID.randomUUID().toString();
-        String command = String.format("mkdir -p %s  ; cd %s  ; md5sum $(ls)  ; echo %s", targetDir, targetDir, uuid);
+        String command = String.format(
+                "mkdir -p \"%1$s\"; cd \"%1$s\"; md5sum * /dev/null 2>/dev/null; echo %2$s",
+                targetDir, uuid
+        );
         ssh.getSshOut().write((command + "\r").getBytes(StandardCharsets.UTF_8));
         ssh.getSshOut().flush();
         Thread.sleep(500);
@@ -126,18 +129,22 @@ public class JumpServer implements ITransport, IFileComparison {
                 .command(command).start();
         InputStream szIn = szProcess.getInputStream();
         OutputStream szOut = szProcess.getOutputStream();
-        new Thread(() -> {
-            Transfer transfer = Transfer.create(szIn, sshOutputStream, file, createProgressListener());
-            transfer.run();
-        }).start();
+        Transfer transfer = Transfer.create(szIn, sshOutputStream, file, createProgressListener());
+
+        Thread thread = new Thread(transfer);
+        thread.start();
         try {
             byte[] buffer = new byte[1024];
             int read;
             while ((read = sshIntputStream.read(buffer, 0, 1024)) >= 0) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException();
+                }
                 szOut.write(buffer, 0, read);
                 szOut.flush();
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) return false;
         }
         return checkResult(sshIntputStream, sshOutputStream, file);
     }
@@ -246,8 +253,6 @@ public class JumpServer implements ITransport, IFileComparison {
         try {
             ssh = getSSH(hostInfo, gsTask);
             return doUploadFile(ssh.getSshIn(), ssh.getSshOut(), filePath, targetDir);
-        } catch (Exception e) {
-            throw e;
         } finally {
             if (ssh != null) {
                 ssh.disconnect();
