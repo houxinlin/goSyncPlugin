@@ -121,7 +121,6 @@ public class JumpServer implements IService {
         return false;
 
     }
-
     private boolean startSzTransfer(String file, OutputStream sshOutputStream, InputStream sshIntputStream) throws Exception {
         String[] command = buildSzCommand(new File(file).getName());
         Process szProcess = new ProcessBuilder()
@@ -224,28 +223,7 @@ public class JumpServer implements IService {
         };
     }
 
-    private void startSzTransfer(OutputStream sshOut, InputStream sshIn, String file) throws Exception {
-        String[] command = null;
-        try {
-            command = buildSzCommand(new File(file).getName());
-        } catch (Exception e) {
-            throw e;
-        }
-        Process szProcess = new ProcessBuilder().directory(new File(file).getParentFile()).command(command).start();
-        InputStream szIn = szProcess.getInputStream();
-        OutputStream szOut = szProcess.getOutputStream();
-        Transfer transfer = Transfer.create(szIn, sshOut, file, createProgressListener());
-        transfer.run();
-        try {
-            byte[] buffer = new byte[1024];
-            int read;
-            while ((read = sshIn.read(buffer, 0, 1024)) >= 0) {
-                szOut.write(buffer, 0, read);
-                szOut.flush();
-            }
-        } catch (Exception ignored) {
-        }
-    }
+
 
     @Override
     public boolean transport(String filePath, String targetDir) throws Exception {
