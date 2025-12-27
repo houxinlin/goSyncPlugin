@@ -26,7 +26,8 @@ public class SimpleServer implements IService {
 
     @Override
     public List<String> compareFiles(List<String> uploadFiles, String targetDir) throws Exception {
-        if (uploadFiles == null || uploadFiles.isEmpty()) return Collections.emptyList();
+        if (uploadFiles == null || uploadFiles.isEmpty())
+            return Collections.emptyList();
 
         Map<String, String> localMd5Map = new HashMap<>();
         for (String path : uploadFiles) {
@@ -36,8 +37,7 @@ public class SimpleServer implements IService {
 
         String command = String.format(
                 "mkdir -p %1$s && cd %1$s && if [ -n \"$(ls -A 2>/dev/null)\" ]; then md5sum *; fi",
-                targetDir
-        );
+                targetDir);
         String output = executeRemoteCommand(command);
         if (!output.isEmpty()) {
             try (BufferedReader reader = new BufferedReader(new StringReader(output))) {
@@ -87,13 +87,19 @@ public class SimpleServer implements IService {
             return localMd5.equalsIgnoreCase(remoteMd5);
         } finally {
             if (sftp != null) {
-                if (sftp.getSession() != null) sftp.getSession().disconnect();
+                if (sftp.getSession() != null)
+                    sftp.getSession().disconnect();
                 sftp.disconnect();
             }
         }
     }
 
-    private String executeRemoteCommand(String command) throws Exception {
+    @Override
+    public String execCommand(String command) throws Exception {
+        return executeRemoteCommand(command);
+    }
+
+    public String executeRemoteCommand(String command) throws Exception {
         ChannelExec channelExec = null;
         try {
             channelExec = JschFactory.openExecChannel(hostInfo, command);
@@ -105,12 +111,15 @@ public class SimpleServer implements IService {
             while (true) {
                 while (in.available() > 0) {
                     int read = in.read(buffer, 0, 2048);
-                    if (read < 0) break;
+                    if (read < 0)
+                        break;
                     sb.append(new String(buffer, 0, read, StandardCharsets.UTF_8));
                 }
                 while (err.available() > 0) {
                     int read = err.read(buffer, 0, 2048);
-                    if (read < 0) break;
+                    if (read < 0)
+                        break;
+                    sb.append(new String(buffer, 0, read, StandardCharsets.UTF_8));
                 }
                 if (channelExec.isClosed()) {
                     if (in.available() <= 0 && err.available() <= 0) {

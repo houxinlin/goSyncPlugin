@@ -13,6 +13,10 @@ public interface GoSyncExtension {
 
     Property<String> getAfterConnectedCommand();
 
+    Property<String> getBeforeCommand();
+
+    Property<String> getAfterCommand();
+
     Property<String> getLibDirectory();
 
     Property<String> getMainJarDirectory();
@@ -20,4 +24,3 @@ public interface GoSyncExtension {
     Property<Integer> getPort();
 
 }
-

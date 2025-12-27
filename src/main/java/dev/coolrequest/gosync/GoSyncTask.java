@@ -36,6 +36,14 @@ public abstract class GoSyncTask extends DefaultTask {
 
     @Input
     @Optional
+    public abstract Property<String> getBeforeCommand();
+
+    @Input
+    @Optional
+    public abstract Property<String> getAfterCommand();
+
+    @Input
+    @Optional
     public abstract Property<String> getLibDirectory();
 
     @Input
@@ -91,7 +99,8 @@ public abstract class GoSyncTask extends DefaultTask {
             throw new IllegalArgumentException("mainJarDirectory 不能为空");
         }
 
-        org.gradle.api.tasks.bundling.Jar jarTask = (org.gradle.api.tasks.bundling.Jar) getProject().getTasks().findByName("jar");
+        org.gradle.api.tasks.bundling.Jar jarTask = (org.gradle.api.tasks.bundling.Jar) getProject().getTasks()
+                .findByName("jar");
         File jarFile = null;
         if (jarTask != null) {
             if (jarTask.getEnabled() && jarTask.getArchiveFile().isPresent()) {
@@ -110,4 +119,3 @@ public abstract class GoSyncTask extends DefaultTask {
         sync.start();
     }
 }
-

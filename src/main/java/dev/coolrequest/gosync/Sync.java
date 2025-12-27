@@ -33,10 +33,25 @@ public class Sync {
 
     public void start() {
         HostInfo hostInfo = createHostInfo();
-        ThreadPoolExecutor threadPoolExecutor =
-                new ThreadPoolExecutor(1, 1, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(3, 3, 1, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>());
         IService iService = IService.create(gsTask.getServerType().get(), hostInfo, gsTask);
         try {
+            if (gsTask.getBeforeCommand().isPresent() && !gsTask.getBeforeCommand().get().isEmpty()) {
+                String beforeCommand = gsTask.getBeforeCommand().get();
+                gsTask.getLogger().lifecycle("执行 beforeCommand: " + beforeCommand);
+                try {
+                    String result = iService.execCommand(beforeCommand);
+                    gsTask.getLogger().lifecycle("beforeCommand 执行完成");
+                    if (!result.isEmpty()) {
+                        gsTask.getLogger().lifecycle("输出: " + result);
+                    }
+                } catch (Exception e) {
+                    gsTask.getLogger().error("beforeCommand 执行失败: " + e.getMessage());
+                    throw e;
+                }
+            }
+
             List<String> uploadFiles = iService.compareFiles(libs, gsTask.getLibDirectory().get());
             if (uploadFiles.isEmpty()) {
                 gsTask.getLogger().lifecycle("依赖无需同步");
@@ -51,6 +66,22 @@ public class Sync {
             gsTask.getLogger().lifecycle(mainJar + " 上传中...");
             boolean transport = iService.transport(mainJar, gsTask.getMainJarDirectory().get());
             gsTask.getLogger().lifecycle(mainJar + " 上传" + (transport ? "成功" : "失败"));
+
+            if (transport && (gsTask.getAfterCommand().isPresent() && !gsTask.getAfterCommand().get().isEmpty())) {
+                String afterCommand = gsTask.getAfterCommand().get();
+                gsTask.getLogger().lifecycle("执行 afterCommand: " + afterCommand);
+                try {
+                    String result = iService.execCommand(afterCommand);
+                    gsTask.getLogger().lifecycle("afterCommand 执行完成");
+                    if (!result.isEmpty()) {
+                        gsTask.getLogger().lifecycle("输出: " + result);
+                    }
+                } catch (Exception e) {
+                    gsTask.getLogger().error("afterCommand 执行失败: " + e.getMessage());
+                    throw e;
+                }
+            }
+
             gsTask.getLogger().lifecycle("部署完成");
         } catch (Exception e) {
             threadPoolExecutor.shutdownNow();

@@ -101,11 +101,37 @@ public class JumpServer implements IService {
         }
     }
 
+    @Override
+    public String execCommand(String command) throws Exception {
+        SSH ssh = getSSH(hostInfo, gsTask);
+        OutputStream sshOut = ssh.getSshOut();
+        InputStream sshIn = ssh.getSshIn();
+        StringBuilder sb = new StringBuilder();
+        try {
+            String uuid = UUID.randomUUID().toString();
+            String commandWrapper = String.format("%s;echo %s", command, uuid);
+            sshOut.write((commandWrapper + "\r").getBytes(StandardCharsets.UTF_8));
+            sshOut.flush();
+            byte[] buffer = new byte[4096];
+            int count = -1;
+            while ((count = (sshIn.read(buffer))) != -1) {
+                sb.append(new String(buffer, 0, count, StandardCharsets.UTF_8));
+                int i1 = sb.indexOf(uuid);
+                int i2 = sb.lastIndexOf(uuid);
+                if ((i1 != -1 && i2 != -1) && i1 < i2) {
+                    break;
+                }
+            }
+        } finally {
+            ssh.disconnect();
+        }
+        return sb.toString();
+    }
+
     private boolean doUploadFile(InputStream sshInputStream, OutputStream sshOutputStream, String file, String targetDir) throws IOException {
-        String rzCommand = String.format("mkdir -p %s && cd %s && %srz -b -y\r",
+        String rzCommand = String.format("mkdir -p %s && cd %s && rz -b -y\r",
                 targetDir,
-                targetDir,
-                "");
+                targetDir);
         sshOutputStream.write((rzCommand + "\r").getBytes(StandardCharsets.UTF_8));
         sshOutputStream.flush();
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -121,6 +147,7 @@ public class JumpServer implements IService {
         return false;
 
     }
+
     private boolean startSzTransfer(String file, OutputStream sshOutputStream, InputStream sshIntputStream) throws Exception {
         String[] command = buildSzCommand(new File(file).getName());
         Process szProcess = new ProcessBuilder()
@@ -224,7 +251,6 @@ public class JumpServer implements IService {
     }
 
 
-
     @Override
     public boolean transport(String filePath, String targetDir) throws Exception {
         SSH ssh = null;
@@ -242,8 +268,8 @@ public class JumpServer implements IService {
         ChannelShell channelShell = JschFactory.openChannel(hostInfo);
         InputStream inputStream = channelShell.getInputStream();
         OutputStream outputStream = channelShell.getOutputStream();
-        String s = gsTask.getAfterConnectedCommand().get();
-        String[] split = s.split("\r");
+        String afterCommand = gsTask.getAfterConnectedCommand().get();
+        String[] split = afterCommand.split("\r");
         for (String string : split) {
             outputStream.write((string + "\r").getBytes(StandardCharsets.UTF_8));
             outputStream.flush();

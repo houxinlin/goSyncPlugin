@@ -17,6 +17,8 @@ public class GoSyncPlugin implements Plugin<Project> {
             task.getUserName().convention(extension.getUserName());
             task.getUserPass().convention(extension.getUserPass());
             task.getAfterConnectedCommand().convention(extension.getAfterConnectedCommand());
+            task.getBeforeCommand().convention(extension.getBeforeCommand());
+            task.getAfterCommand().convention(extension.getAfterCommand());
             task.getLibDirectory().convention(extension.getLibDirectory());
             task.getMainJarDirectory().convention(extension.getMainJarDirectory());
             task.getPort().convention(extension.getPort());
@@ -34,4 +36,3 @@ public class GoSyncPlugin implements Plugin<Project> {
         });
     }
 }
-
